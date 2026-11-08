@@ -1,0 +1,27 @@
+name: markdown-only
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject non-Markdown files
+        run: |
+          # Files added, copied, modified or renamed in this PR (deletions are fine)
+          files=$(git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD")
+
+          # Allowlist: Markdown files, GitHub config, .gitignore, LICENSE
+          bad=$(echo "$files" | grep -vE '\.md$|^\.github/|^\.gitignore$|^LICENSE$' || true)
+
+          if [ -n "$bad" ]; then
+            echo "::error::Only Markdown files are allowed in this repo. Offending files:"
+            echo "$bad" | sed 's/^/  - /'
+            exit 1
+          fi
+          echo "All changed files are Markdown (or allowlisted)."
